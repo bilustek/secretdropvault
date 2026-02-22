@@ -1,5 +1,9 @@
 ![Version](https://img.shields.io/badge/version-0.0.0-orange.svg)
 ![Go](https://img.shields.io/badge/go-1.26-00ADD8.svg?logo=go&logoColor=white)
+[![codecov](https://codecov.io/github/bilustek/secretdropvault/graph/badge.svg?token=VDDN0QQ25M)](https://codecov.io/github/bilustek/secretdropvault)
+[![Go Reference](https://pkg.go.dev/badge/github.com/bilustek/secretdropvault.svg)](https://pkg.go.dev/github.com/bilustek/secretdropvault)
+[![Go Report Card](https://goreportcard.com/badge/github.com/bilustek/secretdropvault)](https://goreportcard.com/report/github.com/bilustek/secretdropvault)
+
 
 # secretdropvault
 
