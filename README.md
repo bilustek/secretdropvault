@@ -1,4 +1,4 @@
-![Version](https://img.shields.io/badge/version-0.0.0-orange.svg)
+![Version](https://img.shields.io/badge/version-0.1.0-orange.svg)
 ![Go](https://img.shields.io/github/go-mod/go-version/bilustek/secretdropvault)
 [![Run go tests](https://github.com/bilustek/secretdropvault/actions/workflows/test.yml/badge.svg)](https://github.com/bilustek/secretdropvault/actions/workflows/test.yml)
 [![Run golangci-lint](https://github.com/bilustek/secretdropvault/actions/workflows/lint.yml/badge.svg)](https://github.com/bilustek/secretdropvault/actions/workflows/lint.yml)
