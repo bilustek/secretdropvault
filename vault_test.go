@@ -124,7 +124,6 @@ func TestDeriveKeyDifferentInfo(t *testing.T) {
 	}
 }
 
-
 func TestEncryptDecryptRoundTrip(t *testing.T) {
 	t.Parallel()
 
