@@ -1,7 +1,11 @@
 package secretdropvault_test
 
 import (
+	"crypto/cipher"
+	"crypto/rand"
+	"errors"
 	"testing"
+	"testing/iotest"
 
 	"github.com/bilustek/secretdropvault"
 )
@@ -28,6 +32,18 @@ func TestGenerateRandomKey(t *testing.T) {
 	}
 }
 
+func TestGenerateRandomKeyRandFailure(t *testing.T) {
+	original := rand.Reader
+	rand.Reader = iotest.ErrReader(errors.New("entropy failure"))
+
+	t.Cleanup(func() { rand.Reader = original })
+
+	_, err := secretdropvault.GenerateRandomKey()
+	if err == nil {
+		t.Error("GenerateRandomKey() should fail when rand.Reader fails")
+	}
+}
+
 func TestGenerateToken(t *testing.T) {
 	t.Parallel()
 
@@ -47,6 +63,18 @@ func TestGenerateToken(t *testing.T) {
 
 	if token == token2 {
 		t.Error("two generated tokens should not be equal")
+	}
+}
+
+func TestGenerateTokenRandFailure(t *testing.T) {
+	original := rand.Reader
+	rand.Reader = iotest.ErrReader(errors.New("entropy failure"))
+
+	t.Cleanup(func() { rand.Reader = original })
+
+	_, err := secretdropvault.GenerateToken()
+	if err == nil {
+		t.Error("GenerateToken() should fail when rand.Reader fails")
 	}
 }
 
@@ -96,6 +124,7 @@ func TestDeriveKeyDifferentInfo(t *testing.T) {
 	}
 }
 
+
 func TestEncryptDecryptRoundTrip(t *testing.T) {
 	t.Parallel()
 
@@ -125,6 +154,31 @@ func TestEncryptDecryptRoundTrip(t *testing.T) {
 	}
 }
 
+func TestEncryptInvalidKeySize(t *testing.T) {
+	t.Parallel()
+
+	badKey := make([]byte, 15) // AES requires 16, 24, or 32
+
+	_, _, err := secretdropvault.Encrypt(badKey, []byte("test"))
+	if err == nil {
+		t.Error("Encrypt() with invalid key size should fail")
+	}
+}
+
+func TestEncryptRandFailure(t *testing.T) {
+	original := rand.Reader
+	rand.Reader = iotest.ErrReader(errors.New("entropy failure"))
+
+	t.Cleanup(func() { rand.Reader = original })
+
+	key := make([]byte, secretdropvault.KeySize)
+
+	_, _, err := secretdropvault.Encrypt(key, []byte("test"))
+	if err == nil {
+		t.Error("Encrypt() should fail when rand.Reader fails")
+	}
+}
+
 func TestDecryptWithWrongKey(t *testing.T) {
 	t.Parallel()
 
@@ -148,6 +202,17 @@ func TestDecryptWithWrongKey(t *testing.T) {
 	_, err = secretdropvault.Decrypt(wrongKey, ciphertext, nonce)
 	if err == nil {
 		t.Error("Decrypt() with wrong key should fail")
+	}
+}
+
+func TestDecryptInvalidKeySize(t *testing.T) {
+	t.Parallel()
+
+	badKey := make([]byte, 15) // AES requires 16, 24, or 32
+
+	_, err := secretdropvault.Decrypt(badKey, []byte("ciphertext"), []byte("nonce"))
+	if err == nil {
+		t.Error("Decrypt() with invalid key size should fail")
 	}
 }
 
@@ -188,6 +253,15 @@ func TestEncodeDecodeKeyRoundTrip(t *testing.T) {
 
 	if string(decoded) != string(original) {
 		t.Error("round-trip encode/decode should preserve key")
+	}
+}
+
+func TestDecodeKeyInvalidBase64(t *testing.T) {
+	t.Parallel()
+
+	_, err := secretdropvault.DecodeKey("!!!not-valid-base64!!!")
+	if err == nil {
+		t.Error("DecodeKey() with invalid base64 should fail")
 	}
 }
 
@@ -249,5 +323,47 @@ func TestFullCryptoFlow(t *testing.T) {
 	_, err = secretdropvault.Decrypt(wrongKey, ciphertext, nonce)
 	if err == nil {
 		t.Error("decrypt with wrong recipient-derived key should fail")
+	}
+}
+
+func TestEncryptGCMFailure(t *testing.T) {
+	restore := secretdropvault.MockNewGCM(func(_ cipher.Block) (cipher.AEAD, error) {
+		return nil, errors.New("gcm failure")
+	})
+	t.Cleanup(restore)
+
+	key := make([]byte, secretdropvault.KeySize)
+
+	_, _, err := secretdropvault.Encrypt(key, []byte("test"))
+	if err == nil {
+		t.Error("Encrypt() should fail when NewGCM fails")
+	}
+}
+
+func TestDecryptGCMFailure(t *testing.T) {
+	restore := secretdropvault.MockNewGCM(func(_ cipher.Block) (cipher.AEAD, error) {
+		return nil, errors.New("gcm failure")
+	})
+	t.Cleanup(restore)
+
+	key := make([]byte, secretdropvault.KeySize)
+
+	_, err := secretdropvault.Decrypt(key, []byte("ciphertext"), []byte("nonce"))
+	if err == nil {
+		t.Error("Decrypt() should fail when NewGCM fails")
+	}
+}
+
+func TestDeriveKeyHKDFFailure(t *testing.T) {
+	restore := secretdropvault.MockHKDFKey(func(_, _ []byte, _ string, _ int) ([]byte, error) {
+		return nil, errors.New("hkdf failure")
+	})
+	t.Cleanup(restore)
+
+	key := make([]byte, secretdropvault.KeySize)
+
+	_, err := secretdropvault.DeriveKey(key, "test@example.com")
+	if err == nil {
+		t.Error("DeriveKey() should fail when hkdfKey fails")
 	}
 }

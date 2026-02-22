@@ -30,6 +30,14 @@ const (
 	TokenSize = 16
 )
 
+// package-level function variables for testability.
+var (
+	newGCM  = cipher.NewGCM
+	hkdfKey = func(secret, salt []byte, info string, length int) ([]byte, error) {
+		return hkdf.Key(sha256.New, secret, salt, info, length)
+	}
+)
+
 // GenerateRandomKey creates a cryptographically secure random key of [KeySize] bytes.
 func GenerateRandomKey() ([]byte, error) {
 	key := make([]byte, KeySize)
@@ -54,7 +62,7 @@ func GenerateToken() (string, error) {
 // DeriveKey uses HKDF-SHA256 to derive a [KeySize]-byte key from the input key
 // material and an info string (typically the recipient's email address).
 func DeriveKey(randomKey []byte, info string) ([]byte, error) {
-	derived, err := hkdf.Key(sha256.New, randomKey, nil, info, KeySize)
+	derived, err := hkdfKey(randomKey, nil, info, KeySize)
 	if err != nil {
 		return nil, fmt.Errorf("derive key: %w", err)
 	}
@@ -70,7 +78,7 @@ func Encrypt(key, plaintext []byte) (ciphertext, nonce []byte, err error) {
 		return nil, nil, fmt.Errorf("create cipher: %w", err)
 	}
 
-	gcm, err := cipher.NewGCM(block)
+	gcm, err := newGCM(block)
 	if err != nil {
 		return nil, nil, fmt.Errorf("create GCM: %w", err)
 	}
@@ -92,7 +100,7 @@ func Decrypt(key, ciphertext, nonce []byte) ([]byte, error) {
 		return nil, fmt.Errorf("create cipher: %w", err)
 	}
 
-	gcm, err := cipher.NewGCM(block)
+	gcm, err := newGCM(block)
 	if err != nil {
 		return nil, fmt.Errorf("create GCM: %w", err)
 	}
