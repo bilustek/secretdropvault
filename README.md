@@ -39,7 +39,7 @@ Zero dependencies beyond the Go standard library.
 ## Installation
 
 ```bash
-go get github.com/bilustek/secretdropvault
+go get -u github.com/bilustek/secretdropvault
 ```
 
 ---
